@@ -40,18 +40,13 @@ void SPIClass::transfer24(const void * buf, size_t count, uint8_t cs_pin)
   // Lets clear the reader queue
   port().CR = LPSPI_CR_RRF | LPSPI_CR_MEN;  // clear the queue and make sure still enabled. 
 
+  // enable interrupts. 
+  port().IER = (port().IER | LPSPI_IER_TCIE);
+
   while (count > 0) {
     // Push out the next byte; 
     port().TDR = p_write? *p_write++ : _transferWriteFill;
     count--; // how many bytes left to output.
-    
-    // Make sure queue is not full before pushing next byte out
-    do {
-      if ((port().RSR & LPSPI_RSR_RXEMPTY) == 0)  {
-        uint8_t b = port().RDR;  // Read any pending RX bytes in
-        count_read--;
-      }
-    } while ((port().SR & LPSPI_SR_TDF) == 0) ;
   }
 
   // now lets wait for all of the read bytes to be returned...
@@ -200,8 +195,7 @@ uint8_t SPIClass::setCS(uint8_t pin)
       *(portConfigRegister(pin)) = hardware().cs_mux[i];
       if (hardware().pcs_select_input_register[i])
         *hardware().pcs_select_input_register[i] = hardware().pcs_select_val[i];
-              
-      Serial.println(hardware().cs_mask[i]);            
+                          
       return hardware().cs_mask[i];
     }
   }

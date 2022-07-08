@@ -24,6 +24,10 @@ void setup() {
   Serial.begin(1000000);
   Serial.println("SPI Starting");
 
+  // Attach interrupt handler for SPI
+  attachInterruptVector(IRQ_LPSPI4, &spi_isr4);
+  NVIC_ENABLE_IRQ(IRQ_LPSPI4);
+
  
   for (int y = 0; y < 9; y++)  {           
     if((y % 2) == 0){
@@ -34,18 +38,32 @@ void setup() {
   }
 
   SPI.begin();   
+
+  
+}
+
+void spi_isr4(void) {
+  // Check transfer complete interrupt
+  if(LPSPI4_SR & LPSPI_SR_TCF) {
+    // clear interrupt
+    LPSPI4_SR = LPSPI_SR_TCF;
+
+    digitalWriteFast(0,HIGH);
+    digitalWriteFast(0,LOW);
+  }
 }
 
 uint8_t dat = 0;
 
 void loop() {
+  /*
   if(dat==0) {
     dat=1;  
     digitalWriteFast(0,HIGH);
   } else {
     dat=0;
     digitalWriteFast(0,LOW);
-  }
+  }*/
  
 
   if(sendState == 0 )  { 
