@@ -535,6 +535,13 @@ bool SPIClass::transferSetup() {
   // Make sure port is in 8 bit mode and clear watermark
   port().TCR = (port().TCR & ~(LPSPI_TCR_FRAMESZ(31))) | LPSPI_TCR_FRAMESZ(7);  
   port().FCR = 0; 
+
+  // Lets try to output the first byte to make sure that we are in 8 bit mode...
+  port().DER = LPSPI_DER_TDDE | LPSPI_DER_RDDE; //enable DMA on both TX and RX
+
+  // We reuse the same buffer and update it in the ISR for multi-block transfers. Seems
+  // to work ok.
+  _dmaTX->sourceBuffer((uint8_t*)txBuffer, 8); 
 }
 
 bool SPIClass::transfer(const void *buf, size_t count) {
@@ -542,22 +549,10 @@ bool SPIClass::transfer(const void *buf, size_t count) {
   digitalWriteFast(0,HIGH); // 1 
   // lets clear cache before we update sizes...
   //if ((uint32_t)buf >= 0x20200000u)  arm_dcache_flush((uint8_t *)buf, count);
-
-
-  //uint8_t *write_data = (uint8_t*) buf;
-  _dmaTX->sourceBuffer((uint8_t*)buf, count);  
   digitalWriteFast(0,LOW);   
-// 1 instr = approx 1.7nS
-  // Now try to start it?
-  // Setup DMA main object
+  // 1 instr = approx 1.7nS
   yield();
-  digitalWriteFast(0,HIGH); // 2 
-
-  // Lets try to output the first byte to make sure that we are in 8 bit mode...
-  port().DER = LPSPI_DER_TDDE | LPSPI_DER_RDDE; //enable DMA on both TX and RX
-  digitalWriteFast(0,LOW);  
   port().SR = 0x3f00; // clear out all of the other status...
-
   digitalWriteFast(0,HIGH); // 3 
   _dmaRX->enable();
   digitalWriteFast(0,LOW);  
@@ -568,6 +563,7 @@ bool SPIClass::transfer(const void *buf, size_t count) {
   return true;
 }
 
+uint8_t flip = 0;
 
 //-------------------------------------------------------------------------
 // DMA RX ISR
@@ -575,10 +571,10 @@ bool SPIClass::transfer(const void *buf, size_t count) {
 void SPIClass::dma_rxisr(void) {
   digitalWriteFast(0,HIGH); //0 
   _dmaRX->clearInterrupt();
-  _dmaTX->clearComplete();
+  //_dmaTX->clearComplete();
 
-  port().FCR = LPSPI_FCR_TXWATER(15); // _spi_fcr_save; // restore the FSR status... 
-  port().DER = 0;   // DMA no longer doing TX (or RX)
+  //port().FCR = LPSPI_FCR_TXWATER(15); // _spi_fcr_save; // restore the FSR status... 
+  //port().DER = 0;   // DMA no longer doing TX (or RX)
 
   port().CR = LPSPI_CR_MEN | LPSPI_CR_RRF | LPSPI_CR_RTF;   // actually clear both...
   port().SR = 0x3f00; // clear out all of the other status...
@@ -586,6 +582,15 @@ void SPIClass::dma_rxisr(void) {
   _dma_state = DMAState::completed;   // set back to 1 in case our call wants to start up dma again
   
   digitalWriteFast(0,LOW);
+
+  if(flip == 0) {
+    flip = 0xFF;
+  } else {
+    flip = 0;
+  }
+  for(uint8_t i = 0; i<8; i++){
+    txBuffer[i] = flip; 
+  }
 
   transfer((void *)txBuffer, 8);
 }
