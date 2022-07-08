@@ -48,7 +48,7 @@ void SPIClass::transfer24(const void * buf, size_t count, uint8_t cs_pin)
     port().TDR = p_write? *p_write++ : _transferWriteFill;
     count--; // how many bytes left to output.
   }
-
+/*
   // now lets wait for all of the read bytes to be returned...
   while (count_read) {
     if ((port().RSR & LPSPI_RSR_RXEMPTY) == 0)  {
@@ -56,6 +56,7 @@ void SPIClass::transfer24(const void * buf, size_t count, uint8_t cs_pin)
       count_read--;
     }
   }
+  */
 }
 
 void SPIClass::begin()
