@@ -546,20 +546,21 @@ bool SPIClass::transferSetup() {
 
 bool SPIClass::transfer(const void *buf, size_t count) {
 
-  digitalWriteFast(0,HIGH); // 1 
   // lets clear cache before we update sizes...
   //if ((uint32_t)buf >= 0x20200000u)  arm_dcache_flush((uint8_t *)buf, count);
-  digitalWriteFast(0,LOW);   
   // 1 instr = approx 1.7nS
+  digitalWriteFast(0,LOW);
   yield();
+  digitalWriteFast(0,HIGH); // 5   
   port().SR = 0x3f00; // clear out all of the other status...
-  digitalWriteFast(0,HIGH); // 3 
+  digitalWriteFast(0,LOW);  
   _dmaRX->enable();
-  digitalWriteFast(0,LOW);  
+  digitalWriteFast(0,HIGH); // 6 
   _dmaTX->enable();
-  digitalWriteFast(0,HIGH); // 4 
+  digitalWriteFast(0,LOW); 
   _dma_state = DMAState::active;
-  digitalWriteFast(0,LOW);  
+  digitalWriteFast(0,HIGH); // 7
+  digitalWriteFast(0,LOW); 
   return true;
 }
 
@@ -569,19 +570,20 @@ uint8_t flip = 0;
 // DMA RX ISR
 //-------------------------------------------------------------------------
 void SPIClass::dma_rxisr(void) {
-  digitalWriteFast(0,HIGH); //0 
+  digitalWriteFast(0,HIGH); // 1 
   _dmaRX->clearInterrupt();
+  digitalWriteFast(0,LOW);
   //_dmaTX->clearComplete();
 
   //port().FCR = LPSPI_FCR_TXWATER(15); // _spi_fcr_save; // restore the FSR status... 
   //port().DER = 0;   // DMA no longer doing TX (or RX)
 
   port().CR = LPSPI_CR_MEN | LPSPI_CR_RRF | LPSPI_CR_RTF;   // actually clear both...
+  digitalWriteFast(0,HIGH); // 2 
   port().SR = 0x3f00; // clear out all of the other status...
-
-  _dma_state = DMAState::completed;   // set back to 1 in case our call wants to start up dma again
-  
   digitalWriteFast(0,LOW);
+  _dma_state = DMAState::completed;   // set back to 1 in case our call wants to start up dma again
+  digitalWriteFast(0,HIGH); // 3 
 
   if(flip == 0) {
     flip = 0xFF;
@@ -591,7 +593,8 @@ void SPIClass::dma_rxisr(void) {
   for(uint8_t i = 0; i<8; i++){
     txBuffer[i] = flip; 
   }
-
+  digitalWriteFast(0,LOW);
+  digitalWriteFast(0,HIGH); // 4 
   transfer((void *)txBuffer, 8);
 }
 #endif // SPI_HAS_TRANSFER_ASYNC
