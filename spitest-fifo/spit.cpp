@@ -10,6 +10,7 @@
 
 #include "spit.h"
 #include "pins_arduino.h"
+#include "arduino.h"
 
 uint32_t         txBuffer[9];
 EventResponder  callbackHandlerFast;
@@ -21,16 +22,19 @@ EventResponder  callbackHandlerFast;
 #if defined(__arm__) && defined(TEENSYDUINO) && (defined(__IMXRT1052__) || defined(__IMXRT1062__))
 
 
-void SPIClass::transfer24(const void * buf, size_t count)
+void SPIClass::transfer24(const void * buf, size_t count, uint8_t cs_pin)
 {
-
   // set framesize to 24 bit. Setting first to "not 31" clears all bits.
   port().TCR = (port().TCR & ~(LPSPI_TCR_FRAMESZ(31))) | LPSPI_TCR_FRAMESZ(23);
+
   // set Peripheral Chip Select
+  uint8_t csmask = setCS(cs_pin);
+  port().TCR = (port().TCR & ~(LPSPI_TCR_PCS(3))) | LPSPI_TCR_PCS(csmask-1);
 
   if (count == 0) return;
-    uint32_t *p_write = (uint32_t*)buf;
-    size_t count_read = count;
+
+  uint32_t *p_write = (uint32_t*)buf;
+  size_t count_read = count;
 
   // Pass 1 keep it simple and don't try packing 8 bits into 16 yet..
   // Lets clear the reader queue
@@ -178,6 +182,16 @@ bool SPIClass::pinIsSCK(uint8_t pin)
   return false;
 }
 
+/*
+ *   10, 37, 36, // CS
+  3 | 0x10, 2 | 0x10, 2 | 0x10, 
+  1, 2, 3,
+  0, 0, 0,
+  &IOMUXC_LPSPI4_PCS0_SELECT_INPUT, &IOMUXC_LPSPI4_PCS0_SELECT_INPUT,&IOMUXC_LPSPI4_PCS0_SELECT_INPUT
+
+ */
+ 
+
 // setCS() is not intended for use from normal Arduino programs/sketches.
 uint8_t SPIClass::setCS(uint8_t pin)
 {
@@ -186,6 +200,8 @@ uint8_t SPIClass::setCS(uint8_t pin)
       *(portConfigRegister(pin)) = hardware().cs_mux[i];
       if (hardware().pcs_select_input_register[i])
         *hardware().pcs_select_input_register[i] = hardware().pcs_select_val[i];
+              
+      Serial.println(hardware().cs_mask[i]);            
       return hardware().cs_mask[i];
     }
   }

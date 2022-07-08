@@ -18,10 +18,12 @@ SPISettings     slowSettings(2000000, MSBFIRST, SPI_MODE0);
 // - Use clock, do X repeats of something and print time.
 void setup() {
   pinMode (0, OUTPUT);
-  pinMode (10, OUTPUT);
-  pinMode (36, OUTPUT);
-  pinMode (37, OUTPUT);
-  SPI.begin(); 
+  //pinMode (10, OUTPUT);
+  //pinMode (36, OUTPUT);
+  //pinMode (37, OUTPUT);
+  Serial.begin(1000000);
+  Serial.println("SPI Starting");
+
  
   for (int y = 0; y < 9; y++)  {           
     if((y % 2) == 0){
@@ -31,6 +33,7 @@ void setup() {
     }
   }
 
+  SPI.begin();   
 }
 
 uint8_t dat = 0;
@@ -61,8 +64,7 @@ void sendFast() {
   sendState = 1;
  // digitalWriteFast(10,HIGH); 
 
-  SPI.setCS(10);
-  SPI.transfer24((void *)txBuffer, 9); 
+  SPI.transfer24((void *)txBuffer, 9, 10); 
   sendState = 2;  
 }
 
@@ -87,7 +89,7 @@ void sendSlow() {
   //digitalWriteFast(10,HIGH); 
   //SPI.setCS(36);
   SPI.beginTransaction(slowSettings);
-  SPI.transfer24((void *)txBuffer, 9); 
+  SPI.transfer24((void *)txBuffer, 9, 36); 
   sendState = 0;  
 }
 
