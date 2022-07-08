@@ -22,7 +22,7 @@ EventResponder  callbackHandlerFast;
 #if defined(__arm__) && defined(TEENSYDUINO) && (defined(__IMXRT1052__) || defined(__IMXRT1062__))
 
 
-void SPIClass::transfer24(const void * buf, size_t count, uint8_t cs_pin)
+void SPIClass::send24(const void * buf, size_t count, uint8_t cs_pin)
 {
   // set framesize to 24 bit. Setting first to "not 31" clears all bits.
   port().TCR = (port().TCR & ~(LPSPI_TCR_FRAMESZ(31))) | LPSPI_TCR_FRAMESZ(23);
@@ -48,15 +48,6 @@ void SPIClass::transfer24(const void * buf, size_t count, uint8_t cs_pin)
     port().TDR = p_write? *p_write++ : _transferWriteFill;
     count--; // how many bytes left to output.
   }
-/*
-  // now lets wait for all of the read bytes to be returned...
-  while (count_read) {
-    if ((port().RSR & LPSPI_RSR_RXEMPTY) == 0)  {
-      uint8_t b = port().RDR;  // Read any pending RX bytes in
-      count_read--;
-    }
-  }
-  */
 }
 
 void SPIClass::begin()

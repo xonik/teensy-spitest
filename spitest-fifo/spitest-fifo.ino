@@ -6,8 +6,8 @@ uint8_t repeats = 0;
 volatile  uint8_t sendState = 0;
 
 EventResponder  callbackHandlerSlow;
-SPISettings     fastSettings(8000000, MSBFIRST, SPI_MODE0);
-SPISettings     slowSettings(2000000, MSBFIRST, SPI_MODE0);
+SPISettings     fastSettings(50000000, MSBFIRST, SPI_MODE0);
+SPISettings     slowSettings(4000000, MSBFIRST, SPI_MODE0);
 
 // TODO: 
 // Test
@@ -28,7 +28,6 @@ void setup() {
   // Attach interrupt handler for SPI
   attachInterruptVector(IRQ_LPSPI4, &spi_isr4);
   NVIC_ENABLE_IRQ(IRQ_LPSPI4);
-
  
   for (int y = 0; y < 9; y++)  {           
     if((y % 2) == 0){
@@ -77,7 +76,7 @@ void sendFast() {
   //Send txBuffer to display using SPI DMA
   sendState = 1;
   SPI.beginTransaction(fastSettings);
-  SPI.transfer24((void *)txBuffer, 9, 10);   
+  SPI.send24((void *)txBuffer, 8, 10);   
 }
 
 void sendSlow() {  
@@ -86,5 +85,5 @@ void sendSlow() {
   //digitalWriteFast(10,HIGH); 
   //SPI.setCS(36);
   SPI.beginTransaction(slowSettings);
-  SPI.transfer24((void *)txBuffer, 9, 36);  
+  SPI.send24((void *)txBuffer, 2, 36);  
 }

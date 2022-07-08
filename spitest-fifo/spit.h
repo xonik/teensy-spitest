@@ -280,7 +280,7 @@ public:
 
   void setTransferWriteFill(uint8_t ch ) {_transferWriteFill = ch;}
 
-  void transfer24(const void * buf, size_t count, uint8_t cs_pin);
+  void send24(const void * buf, size_t count, uint8_t cs_pin);
 
   // Asynch support (DMA )
 #ifdef SPI_HAS_TRANSFER_ASYNC
