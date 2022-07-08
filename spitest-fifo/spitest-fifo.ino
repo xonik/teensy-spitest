@@ -1,11 +1,14 @@
+#include <Adafruit_STMPE610.h>
+
 //No rights given, no responsibilities taken, but the code is here.
 // https://forum.pjrc.com/threads/67247-Teensy-4-0-DMA-SPI/page2
-#include "spit.h"
 
-uint8_t repeats = 0;
+// Copy fork of SPI to /Applications/Teensyduino.app/Contents/Java/hardware/teensy/avr/libraries/SPI
+#include <SPI.h>
+
 volatile  uint8_t sendState = 0;
+uint32_t         txBuffer[9];
 
-EventResponder  callbackHandlerSlow;
 SPISettings     fastSettings(50000000, MSBFIRST, SPI_MODE0);
 SPISettings     slowSettings(4000000, MSBFIRST, SPI_MODE0);
 
@@ -26,8 +29,9 @@ void setup() {
   Serial.println("SPI Starting");
 
   // Attach interrupt handler for SPI
-  attachInterruptVector(IRQ_LPSPI4, &spi_isr4);
-  NVIC_ENABLE_IRQ(IRQ_LPSPI4);
+  //attachInterruptVector(IRQ_LPSPI4, &spi_isr4);
+  //NVIC_ENABLE_IRQ(IRQ_LPSPI4);
+  SPI.enableInterrupt(&spi_isr4);
  
   for (int y = 0; y < 9; y++)  {           
     if((y % 2) == 0){
@@ -44,9 +48,9 @@ void setup() {
 
 void spi_isr4(void) {
   // Check transfer complete interrupt
-  if(LPSPI4_SR & LPSPI_SR_TCF) {
+  if(SPI.hasInterruptFlagSet(LPSPI_SR_TCF)) {
     // clear interrupt
-    LPSPI4_SR = LPSPI_SR_TCF;
+    SPI.clearInterruptFlag(LPSPI_SR_TCF);
     sendState++;
     if(sendState == 4) {
       sendState = 0;
